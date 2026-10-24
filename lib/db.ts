@@ -7,30 +7,52 @@ import type { Category, Order, Product, StoreData } from './types'
 
 // File-backed store. Swap this module for a real database (Postgres, Supabase…)
 // when deploying to serverless hosting, where the filesystem is not persistent.
-export const DATA_DIR = path.join(process.cwd(), 'data')
-export const UPLOAD_DIR = path.join(DATA_DIR, 'uploads')
-const FILE = path.join(DATA_DIR, 'store.json')
+export const DATA_DIR = path.join(/*turbopackIgnore: true*/ process.cwd(), 'data')
+export const UPLOAD_DIR = path.join(/*turbopackIgnore: true*/ DATA_DIR, 'uploads')
+const FILE = path.join(/*turbopackIgnore: true*/ DATA_DIR, 'store.json')
 
 let queue: Promise<unknown> = Promise.resolve()
 let seeding: Promise<void> | null = null
+// Set when the filesystem refuses writes (e.g. Vercel). The catalog is then served
+// read-only from the seed so the storefront keeps working instead of erroring.
+let readOnly = process.env.STORE_READ_ONLY === '1'
+
+const READ_ONLY_CODES = new Set(['EROFS', 'EACCES', 'EPERM'])
+export const READ_ONLY_MESSAGE =
+  'Este hosting no permite guardar archivos. Conecta una base de datos para poder crear productos y recibir pedidos.'
 
 async function load(): Promise<StoreData> {
   try {
     return JSON.parse(await fs.readFile(FILE, 'utf8')) as StoreData
   } catch (err: any) {
     if (err?.code !== 'ENOENT') throw err
+    if (readOnly) return seedData()
     // Parallel first reads must share one seed write.
     seeding ??= save(seedData()).finally(() => (seeding = null))
-    await seeding
+    try {
+      await seeding
+    } catch (writeErr: any) {
+      if (!READ_ONLY_CODES.has(writeErr?.code)) throw writeErr
+      readOnly = true
+      console.warn(`[db] ${READ_ONLY_MESSAGE}`)
+      return seedData()
+    }
     return JSON.parse(await fs.readFile(FILE, 'utf8')) as StoreData
   }
 }
 
 async function save(data: StoreData) {
-  await fs.mkdir(DATA_DIR, { recursive: true })
-  const tmp = `${FILE}.${randomUUID()}.tmp`
-  await fs.writeFile(tmp, JSON.stringify(data, null, 2))
-  await fs.rename(tmp, FILE)
+  if (readOnly) throw new Error(READ_ONLY_MESSAGE)
+  try {
+    await fs.mkdir(DATA_DIR, { recursive: true })
+    const tmp = `${FILE}.${randomUUID()}.tmp`
+    await fs.writeFile(tmp, JSON.stringify(data, null, 2))
+    await fs.rename(tmp, FILE)
+  } catch (err: any) {
+    if (!READ_ONLY_CODES.has(err?.code)) throw err
+    readOnly = true
+    throw Object.assign(new Error(READ_ONLY_MESSAGE), { code: err.code })
+  }
 }
 
 /** Serialises read-modify-write cycles so concurrent requests don't clobber each other. */

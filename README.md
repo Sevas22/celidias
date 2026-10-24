@@ -35,7 +35,9 @@ npm run dev
 Los productos, pedidos e imágenes subidas se guardan en `data/` (`store.json` y `data/uploads/`).
 La primera vez se crea con el catálogo inicial de `lib/seed.ts`. Para reiniciar la tienda, borra la carpeta `data/`.
 
-> Este almacenamiento en archivo funciona en un servidor propio o VPS. Para hosting serverless (p. ej. Vercel) hay que reemplazar `lib/db.ts` por una base de datos (Postgres/Supabase) y las imágenes por un almacenamiento de objetos.
+> Este almacenamiento en archivo funciona en un servidor propio o VPS. En hosting serverless (p. ej. Vercel) el disco es de solo lectura: la tienda se muestra con el catálogo inicial, pero no se pueden crear productos, subir imágenes ni recibir pedidos (se muestra un aviso en lugar de un error). Para habilitarlo allí hay que reemplazar `lib/db.ts` por una base de datos (Postgres/Supabase) y las imágenes por un almacenamiento de objetos (Vercel Blob, Supabase Storage…).
+>
+> Para probar ese modo en local: `STORE_READ_ONLY=1 npm run start`.
 
 ## Pendiente antes de producción
 
