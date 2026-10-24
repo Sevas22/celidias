@@ -2,7 +2,7 @@ import { promises as fs } from 'fs'
 import path from 'path'
 import { randomUUID } from 'crypto'
 import { isAdmin } from '@/lib/auth'
-import { READ_ONLY_MESSAGE, UPLOAD_DIR } from '@/lib/db'
+import { isReadOnlyError, READ_ONLY_MESSAGE, UPLOAD_DIR } from '@/lib/db'
 
 const MAX_BYTES = 8 * 1024 * 1024
 const EXT: Record<string, string> = {
@@ -34,8 +34,8 @@ export async function POST(req: Request) {
       await fs.writeFile(path.join(/*turbopackIgnore: true*/ UPLOAD_DIR, name), Buffer.from(await file.arrayBuffer()))
       urls.push(`/uploads/${name}`)
     }
-  } catch (err: any) {
-    if (['EROFS', 'EACCES', 'EPERM'].includes(err?.code)) return Response.json({ error: READ_ONLY_MESSAGE }, { status: 503 })
+  } catch (err) {
+    if (isReadOnlyError(err)) return Response.json({ error: READ_ONLY_MESSAGE }, { status: 503 })
     throw err
   }
   return Response.json({ urls })

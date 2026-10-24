@@ -15,11 +15,17 @@ let queue: Promise<unknown> = Promise.resolve()
 let seeding: Promise<void> | null = null
 // Set when the filesystem refuses writes (e.g. Vercel). The catalog is then served
 // read-only from the seed so the storefront keeps working instead of erroring.
-let readOnly = process.env.STORE_READ_ONLY === '1'
+// Vercel sets VERCEL=1 at runtime; its function filesystem can't be written to.
+let readOnly = process.env.STORE_READ_ONLY === '1' || process.env.VERCEL === '1'
 
-const READ_ONLY_CODES = new Set(['EROFS', 'EACCES', 'EPERM'])
+// Vercel reports ENOENT (not EROFS) when creating folders under /var/task.
+const READ_ONLY_CODES = new Set(['EROFS', 'EACCES', 'EPERM', 'ENOENT'])
 export const READ_ONLY_MESSAGE =
   'Este hosting no permite guardar archivos. Conecta una base de datos para poder crear productos y recibir pedidos.'
+
+export function isReadOnlyError(err: unknown) {
+  return READ_ONLY_CODES.has((err as { code?: string })?.code ?? '')
+}
 
 async function load(): Promise<StoreData> {
   try {
@@ -32,9 +38,9 @@ async function load(): Promise<StoreData> {
     try {
       await seeding
     } catch (writeErr: any) {
-      if (!READ_ONLY_CODES.has(writeErr?.code)) throw writeErr
+      // Seeding is best-effort: if the file can't be created, serve the catalog from memory.
       readOnly = true
-      console.warn(`[db] ${READ_ONLY_MESSAGE}`)
+      console.warn(`[db] No se pudo crear ${FILE} (${writeErr?.code ?? writeErr}). ${READ_ONLY_MESSAGE}`)
       return seedData()
     }
     return JSON.parse(await fs.readFile(FILE, 'utf8')) as StoreData
@@ -49,7 +55,7 @@ async function save(data: StoreData) {
     await fs.writeFile(tmp, JSON.stringify(data, null, 2))
     await fs.rename(tmp, FILE)
   } catch (err: any) {
-    if (!READ_ONLY_CODES.has(err?.code)) throw err
+    if (!isReadOnlyError(err)) throw err
     readOnly = true
     throw Object.assign(new Error(READ_ONLY_MESSAGE), { code: err.code })
   }
