@@ -1,0 +1,111 @@
+@import 'tailwindcss';
+@import 'tw-animate-css';
+
+@theme {
+  /* Paleta oficial Celidia's (Brand Board 03/06) */
+  --color-monstera: #2E4A32;
+  --color-monstera-deep: #223826;
+  --color-salvia: #A7B89A;
+  --color-blush: #E7C6C9;
+  --color-empolvado: #B76F72;
+  --color-empolvado-deep: #9C5A5D;
+  --color-marfil: #F8F3EB;
+  --color-lino: #F1E8DC;
+  --color-ink: #1F2A20;
+
+  --font-serif: var(--font-playfair), 'Playfair Display', Georgia, serif;
+  --font-sans: var(--font-montserrat), 'Montserrat', system-ui, sans-serif;
+  --font-script: var(--font-allura), 'Allura', cursive;
+
+  --ease-luxe: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+:root {
+  color-scheme: light;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  background: var(--color-marfil);
+  color: var(--color-monstera);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+}
+
+::selection {
+  background: var(--color-blush);
+  color: var(--color-monstera);
+}
+
+button {
+  cursor: pointer;
+}
+
+/* Etiqueta en versalitas con tracking amplio (Montserrat semibold, brand board 04/06) */
+@utility eyebrow {
+  @apply text-[10px] font-semibold uppercase tracking-[0.32em];
+}
+
+@utility btn {
+  @apply inline-flex items-center justify-center gap-3 rounded-full px-7 py-3.5 text-[11px] font-semibold uppercase tracking-[0.22em] transition-all duration-500 ease-(--ease-luxe) disabled:pointer-events-none disabled:opacity-50;
+}
+@utility btn-primary {
+  @apply btn bg-empolvado text-marfil shadow-[0_10px_30px_-12px_rgba(183,111,114,0.8)] hover:-translate-y-0.5 hover:bg-empolvado-deep;
+}
+@utility btn-dark {
+  @apply btn bg-monstera text-marfil hover:-translate-y-0.5 hover:bg-monstera-deep;
+}
+@utility btn-ghost {
+  @apply btn border border-monstera/25 text-monstera hover:border-monstera hover:bg-monstera hover:text-marfil;
+}
+
+@utility field {
+  @apply w-full rounded-xl border border-monstera/15 bg-white/70 px-4 py-3 text-sm text-monstera outline-none transition placeholder:text-monstera/35 focus:border-empolvado focus:bg-white focus:ring-4 focus:ring-blush/40;
+}
+@utility field-label {
+  @apply mb-2 block text-[10px] font-semibold uppercase tracking-[0.22em] text-monstera/70;
+}
+
+@utility link-underline {
+  @apply relative after:absolute after:-bottom-1 after:left-0 after:h-px after:w-full after:origin-right after:scale-x-0 after:bg-current after:transition-transform after:duration-500 hover:after:origin-left hover:after:scale-x-100;
+}
+
+@utility paper {
+  background-image:
+    radial-gradient(ellipse at 15% 10%, rgba(231, 198, 201, 0.35), transparent 55%),
+    radial-gradient(ellipse at 90% 80%, rgba(167, 184, 154, 0.25), transparent 50%);
+}
+
+@keyframes rise {
+  from { opacity: 0; transform: translateY(24px); }
+  to { opacity: 1; transform: none; }
+}
+.rise {
+  animation: rise 1.1s var(--ease-luxe) both;
+}
+.rise-2 { animation-delay: 0.15s; }
+.rise-3 { animation-delay: 0.3s; }
+.rise-4 { animation-delay: 0.45s; }
+
+@keyframes sway {
+  0%, 100% { transform: rotate(-2deg); }
+  50% { transform: rotate(2deg); }
+}
+.sway {
+  animation: sway 9s ease-in-out infinite;
+  transform-origin: bottom center;
+}
+
+@keyframes marquee {
+  to { transform: translateX(-50%); }
+}
+.marquee {
+  animation: marquee 40s linear infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rise, .sway, .marquee { animation: none; }
+}
